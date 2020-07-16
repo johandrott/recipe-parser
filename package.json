@@ -30,12 +30,12 @@
     "chai": "^4.1.0",
     "mocha": "^5.2.0",
     "tslint": "^5.10.0",
-    "typescript": "^2.4.2"
+    "typescript": "^3.9.6"
   },
   "dependencies": {
-    "@types/natural": "^0.2.33",
+    "@types/natural": "^0.6.3",
     "@types/node": "^10.5.1",
-    "natural": "^0.6.1"
+    "natural": "^2.1.5"
   },
   "keywords": [
     "recipe",
