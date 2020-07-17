@@ -4,15 +4,8 @@ export interface Ingredient {
   unit: string | null;
   minQty: string | null;
   maxQty: string | null;
+  extraInfo: string | null;
 }
-export declare function parse(
-  recipeString: string
-): {
-  quantity: string;
-  unit: string | null;
-  ingredient: string;
-  minQty: string;
-  maxQty: string;
-};
+export declare function parse(recipeString: string): Ingredient;
 export declare function combine(ingredientArray: Ingredient[]): Ingredient[];
-export declare function prettyPrintingPress(ingredient: Ingredient): string;
+// export declare function prettyPrintingPress(ingredient: Ingredient): string;

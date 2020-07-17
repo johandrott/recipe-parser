@@ -1,9 +1,9 @@
 import * as convert from "./convert";
 import { units } from "./units";
-import { repeatingFractions } from "./repeatingFractions";
-import * as Natural from "natural";
+// import { repeatingFractions } from "./repeatingFractions";
+// import * as Natural from "natural";
 
-const nounInflector = new Natural.NounInflector();
+// const nounInflector = new Natural.NounInflector();
 
 export interface Ingredient {
   ingredient: string;
@@ -11,6 +11,7 @@ export interface Ingredient {
   unit: string | null;
   minQty: string | null;
   maxQty: string | null;
+  extraInfo: string | null;
 }
 
 function getUnit(input: string) {
@@ -38,7 +39,7 @@ export function parse(recipeString: string) {
 
   /* extraInfo will be any info in parantheses. We'll place it at the end of the ingredient.
   For example: "sugar (or other sweetener)" --> extraInfo: "(or other sweetener)" */
-  let extraInfo;
+  let extraInfo = null;
   if (convert.getFirstMatch(restOfIngredient, /\(([^\)]+)\)/)) {
     extraInfo = convert.getFirstMatch(restOfIngredient, /\(([^\)]+)\)/);
     restOfIngredient = restOfIngredient.replace(extraInfo, "").trim();
@@ -64,7 +65,8 @@ export function parse(recipeString: string) {
   return {
     quantity,
     unit: !!unit ? unit : null,
-    ingredient: extraInfo ? `${ingredient} ${extraInfo}` : ingredient,
+    ingredient: ingredient,
+    extraInfo,
     minQty,
     maxQty,
   };
@@ -92,65 +94,59 @@ export function combine(ingredientArray: Ingredient[]) {
     .sort(compareIngredients);
 }
 
-export function prettyPrintingPress(ingredient: Ingredient) {
-  let quantity = "";
-  let unit = ingredient.unit;
-  if (ingredient.quantity) {
-    const [whole, remainder] = ingredient.quantity.split(".");
-    if (+whole !== 0 && typeof whole !== "undefined") {
-      quantity = whole;
-    }
-    if (+remainder !== 0 && typeof remainder !== "undefined") {
-      let fractional;
-      if (repeatingFractions[remainder]) {
-        fractional = repeatingFractions[remainder];
-      } else {
-        const fraction = "0." + remainder;
-        const len = fraction.length - 2;
-        let denominator = Math.pow(10, len);
-        let numerator = +fraction * denominator;
+// export function prettyPrintingPress(ingredient: Ingredient) {
+//   let quantity = "";
+//   let unit = ingredient.unit;
+//   if (ingredient.quantity) {
+//     const [whole, remainder] = ingredient.quantity.split(".");
+//     if (+whole !== 0 && typeof whole !== "undefined") {
+//       quantity = whole;
+//     }
+//     if (+remainder !== 0 && typeof remainder !== "undefined") {
+//       let fractional;
+//       if (repeatingFractions[remainder]) {
+//         fractional = repeatingFractions[remainder];
+//       } else {
+//         const fraction = "0." + remainder;
+//         const len = fraction.length - 2;
+//         let denominator = Math.pow(10, len);
+//         let numerator = +fraction * denominator;
 
-        const divisor = gcd(numerator, denominator);
+//         const divisor = gcd(numerator, denominator);
 
-        numerator /= divisor;
-        denominator /= divisor;
-        fractional = Math.floor(numerator) + "/" + Math.floor(denominator);
-      }
+//         numerator /= divisor;
+//         denominator /= divisor;
+//         fractional = Math.floor(numerator) + "/" + Math.floor(denominator);
+//       }
 
-      quantity += quantity ? " " + fractional : fractional;
-    }
-    if (
-      ((+whole !== 0 && typeof remainder !== "undefined") || +whole > 1) &&
-      unit
-    ) {
-      unit = nounInflector.pluralize(unit);
-    }
-  } else {
-    return ingredient.ingredient;
-  }
+//       quantity += quantity ? " " + fractional : fractional;
+//     }
+//     if (
+//       ((+whole !== 0 && typeof remainder !== "undefined") || +whole > 1) &&
+//       unit
+//     ) {
+//       unit = nounInflector.pluralize(unit);
+//     }
+//   } else {
+//     return ingredient.ingredient;
+//   }
 
-  return `${quantity}${unit ? " " + unit : ""} ${ingredient.ingredient}`;
-}
+//   return `${quantity}${unit ? " " + unit : ""} ${ingredient.ingredient}`;
+// }
 
-function gcd(a: number, b: number): number {
-  if (b < 0.0000001) {
-    return a;
-  }
+// function gcd(a: number, b: number): number {
+//   if (b < 0.0000001) {
+//     return a;
+//   }
 
-  return gcd(b, Math.floor(a % b));
-}
+//   return gcd(b, Math.floor(a % b));
+// }
 
 // TODO: Maybe change this to existingIngredients: Ingredient | Ingredient[]
 function combineTwoIngredients(
   existingIngredients: Ingredient,
   ingredient: Ingredient
 ): Ingredient {
-  const quantity =
-    existingIngredients.quantity && ingredient.quantity
-      ? (
-          Number(existingIngredients.quantity) + Number(ingredient.quantity)
-        ).toString()
-      : null;
   const minQty =
     existingIngredients.minQty && ingredient.minQty
       ? (
@@ -163,6 +159,19 @@ function combineTwoIngredients(
           Number(existingIngredients.maxQty) + Number(ingredient.maxQty)
         ).toString()
       : null;
+
+  let quantity;
+  if (minQty && maxQty) {
+    quantity = minQty === maxQty ? minQty : `${minQty}-${maxQty}`;
+  } else {
+    quantity =
+      existingIngredients.quantity && ingredient.quantity
+        ? (
+            Number(existingIngredients.quantity) + Number(ingredient.quantity)
+          ).toString()
+        : null;
+  }
+
   return Object.assign({}, existingIngredients, { quantity, minQty, maxQty });
 }
 
