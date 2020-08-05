@@ -19,6 +19,9 @@ describe("recipe parser", () => {
     it('of "1.5 teaspoon water"', () => {
       expect(parse("1.5 teaspoon water").quantity).to.equal("1.5");
     });
+    it('of "1,5 teaspoon water"', () => {
+      expect(parse("1,5 teaspoon water").quantity).to.equal("1.5");
+    });
     it('of "1 1/2 teaspoon water"', () => {
       expect(parse("1 1/2 teaspoon water").quantity).to.equal("1.5");
     });

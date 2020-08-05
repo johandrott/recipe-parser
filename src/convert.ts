@@ -89,7 +89,11 @@ export function findQuantityAndConvertIfUnicode(ingredientLine: string) {
 
   // found a numeric/fraction quantity, for example: "1 1/3"
   else if (ingredientLine.match(numericAndFractionRegex)) {
-    const quantity = getFirstMatch(ingredientLine, numericAndFractionRegex);
+    let quantity = getFirstMatch(
+      ingredientLine,
+      numericAndFractionRegex
+    ).replace(",", ".");
+
     const restOfIngredient = ingredientLine
       .replace(getFirstMatch(ingredientLine, numericAndFractionRegex), "")
       .trim();

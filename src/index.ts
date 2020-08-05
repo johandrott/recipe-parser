@@ -28,7 +28,7 @@ function getUnit(input: string) {
 
 export function parse(recipeString: string) {
   const ingredientLine = recipeString.trim(); // removes leading and trailing whitespace
-
+  debugger;
   /* restOfIngredient represents rest of ingredient line.
   For example: "1 pinch salt" --> quantity: 1, restOfIngredient: pinch salt */
   let [quantity, restOfIngredient] = convert.findQuantityAndConvertIfUnicode(
