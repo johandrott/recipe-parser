@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { parse, combine } from "../src/index";
+import { parse, combine, scale } from "../src/index";
 
 describe("recipe parser", () => {
   it("returns an object", () => {
@@ -911,6 +911,38 @@ describe("combine ingredients", () => {
         extraInfo: null,
       },
     ]);
+  });
+});
+
+describe("scale ingredient", () => {
+  it("should multiply quantity by 2", () => {
+    expect(scale("1 apple (or other fruit)", 2)).to.equal(
+      "2 apple (or other fruit)"
+    );
+  });
+
+  it("should multiply quantity range by 2", () => {
+    expect(scale("1 - 2 apple (or other fruit)", 2)).to.equal(
+      "2 - 4 apple (or other fruit)"
+    );
+  });
+
+  it("should multiply fraction by 2", () => {
+    expect(scale("1 1/2 apple (or other fruit)", 2)).to.equal(
+      "3 apple (or other fruit)"
+    );
+  });
+
+  it("should multiply unicode by 2", () => {
+    expect(scale("1 ½ apple (or other fruit)", 2)).to.equal(
+      "1 apple (or other fruit)"
+    );
+  });
+
+  it("should multiply decimal range by 2", () => {
+    expect(scale("1,5 - 2 apple (or other fruit)", 2)).to.equal(
+      "3 - 4 apple (or other fruit)"
+    );
   });
 });
 

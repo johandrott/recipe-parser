@@ -8,4 +8,8 @@ export interface Ingredient {
 }
 export declare function parse(recipeString: string): Ingredient;
 export declare function combine(ingredientArray: Ingredient[]): Ingredient[];
+export declare function scale(
+  ingredientString: string,
+  multiplier: number
+): string;
 // export declare function prettyPrintingPress(ingredient: Ingredient): string;

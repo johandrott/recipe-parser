@@ -26,6 +26,10 @@ function getUnit(input: string) {
   return [];
 }
 
+export function scale(ingredientString: string, multiplier: number): string {
+  return convert.multiplyQuantity(ingredientString, multiplier);
+}
+
 export function parse(recipeString: string) {
   const ingredientLine = recipeString.trim(); // removes leading and trailing whitespace
   debugger;

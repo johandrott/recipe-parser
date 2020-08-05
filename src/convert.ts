@@ -109,6 +109,76 @@ export function findQuantityAndConvertIfUnicode(ingredientLine: string) {
   }
 }
 
+export function multiplyQuantity(
+  ingredientLine: string,
+  multiplier: number
+): string {
+  const numericAndFractionRegex = /^(\d+\/\d+)|(\d+\s\d+\/\d+)|(\d+.\d+)|\d+/g;
+  const numericRangeWithSpaceRegex = /^(\d+\-\d+)|^(\d+\s\-\s\d+)|^(\d+\sto\s\d+)/g; // for ex: "1 to 2" or "1 - 2"
+  const unicodeFractionRegex = /\d*[^\u0000-\u007F]+/g;
+  const onlyUnicodeFraction = /[^\u0000-\u007F]+/g;
+
+  // found a unicode quantity inside our regex, for ex: '⅝'
+  if (ingredientLine.match(unicodeFractionRegex)) {
+    const numericPart = getFirstMatch(ingredientLine, numericAndFractionRegex);
+    const unicodePart = getFirstMatch(
+      ingredientLine,
+      numericPart ? onlyUnicodeFraction : unicodeFractionRegex
+    );
+
+    // If there's a match for the unicodePart in our dictionary above
+    if (unicodeObj[unicodePart]) {
+      const quantity =
+        parseFloat(
+          convertFromFraction(`${numericPart} ${unicodeObj[unicodePart]}`)
+        ) * multiplier;
+
+      const restOfIngredient = ingredientLine
+        .replace(getFirstMatch(ingredientLine, unicodeFractionRegex), "")
+        .trim();
+      return `${quantity}${restOfIngredient}`;
+    }
+  }
+
+  // found a quantity range, for ex: "2 to 3"
+  if (ingredientLine.match(numericRangeWithSpaceRegex)) {
+    const quantity = getFirstMatch(ingredientLine, numericRangeWithSpaceRegex)
+      .replace("to", "-")
+      .split(" ")
+      .join("");
+
+    const restOfIngredient = ingredientLine
+      .replace(getFirstMatch(ingredientLine, numericRangeWithSpaceRegex), "")
+      .trim();
+
+    const quantityRange = quantity.split("-");
+    const minQty = parseFloat(quantityRange[0]) * multiplier;
+    const maxQty = parseFloat(quantityRange[1]) * multiplier;
+
+    return `${minQty} - ${maxQty} ${restOfIngredient}`;
+  }
+  // found a numeric/fraction quantity, for example: "1 1/3"
+  else if (ingredientLine.match(numericAndFractionRegex)) {
+    let parsedQuantity = getFirstMatch(
+      ingredientLine,
+      numericAndFractionRegex
+    ).replace(",", ".");
+
+    const quantity =
+      parseFloat(convertFromFraction(parsedQuantity)) * multiplier;
+
+    const restOfIngredient = ingredientLine
+      .replace(getFirstMatch(ingredientLine, numericAndFractionRegex), "")
+      .trim();
+    return `${quantity} ${restOfIngredient}`;
+  }
+
+  // no parse-able quantity found
+  else {
+    return ingredientLine;
+  }
+}
+
 function keepThreeDecimals(val: number) {
   const strVal = val.toString();
   return strVal.split(".")[0] + "." + strVal.split(".")[1].substring(0, 3);

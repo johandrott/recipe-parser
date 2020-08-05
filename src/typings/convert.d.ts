@@ -3,3 +3,7 @@ export declare function getFirstMatch(line: string, regex: RegExp): string;
 export declare function findQuantityAndConvertIfUnicode(
   ingredientLine: string
 ): (string | null)[];
+export declare function multiplyQuantity(
+  ingredientString: string,
+  multiplier: number
+): string;
