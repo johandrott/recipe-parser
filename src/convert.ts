@@ -47,60 +47,65 @@ const unicodeObj: { [key: string]: string } = {
   "⅒": "1/10",
 };
 
+const numericAndFractionRegex = /^(\d+\/\d+)|(\d+\s\d+\/\d+)|(\d+.\d+)|\d+/g;
+const unicodeFractionRegex = /\d*\s?[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒]/g;
+const onlyUnicodeFraction = /[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒]+/g;
+const rangesRegex = /^(\d[/.,]?\d?\s?-\s?\d[/.,]?\d?)|^(\d\s?[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒]\s?-\s?\d\s?[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒]?)|([½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒]\s?-\s?[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅐⅛⅜⅝⅞⅑⅒])/g; // for ex: 1 1/2 - 3"
+
 export function findQuantityAndConvertIfUnicode(ingredientLine: string) {
-  const numericAndFractionRegex = /^(\d+\/\d+)|(\d+\s\d+\/\d+)|(\d+.\d+)|\d+/g;
-  const numericRangeWithSpaceRegex = /^(\d+\-\d+)|^(\d+\s\-\s\d+)|^(\d+\sto\s\d+)/g; // for ex: "1 to 2" or "1 - 2"
-  const unicodeFractionRegex = /\d*[^\u0000-\u007F]+/g;
-  const onlyUnicodeFraction = /[^\u0000-\u007F]+/g;
+  if (ingredientLine.match(rangesRegex)) {
+    const quantityRanges = getFirstMatch(ingredientLine, rangesRegex)
+      .trim()
+      .split("-");
+
+    const ranges = quantityRanges.map((quantity) => {
+      quantity = quantity.trim().replace(",", ".");
+
+      //range has unicodes
+      let value = quantity;
+      if (ingredientLine.match(unicodeFractionRegex)) {
+        value = convertUnicode(quantity);
+      }
+
+      return value;
+    });
+
+    return [
+      `${ranges[0]}-${ranges[1]}`,
+      ingredientLine
+        .replace(getFirstMatch(ingredientLine, rangesRegex), "")
+        .trim(),
+    ];
+  }
 
   // found a unicode quantity inside our regex, for ex: '⅝'
   if (ingredientLine.match(unicodeFractionRegex)) {
-    const numericPart = getFirstMatch(ingredientLine, numericAndFractionRegex);
-    const unicodePart = getFirstMatch(
-      ingredientLine,
-      numericPart ? onlyUnicodeFraction : unicodeFractionRegex
-    );
+    const quantity = convertUnicode(ingredientLine);
 
     // If there's a match for the unicodePart in our dictionary above
-    if (unicodeObj[unicodePart]) {
-      return [
-        `${numericPart} ${unicodeObj[unicodePart]}`,
-        ingredientLine
-          .replace(getFirstMatch(ingredientLine, unicodeFractionRegex), "")
-          .trim(),
-      ];
-    }
-  }
-
-  // found a quantity range, for ex: "2 to 3"
-  if (ingredientLine.match(numericRangeWithSpaceRegex)) {
-    const quantity = getFirstMatch(ingredientLine, numericRangeWithSpaceRegex)
-      .replace("to", "-")
-      .split(" ")
-      .join("");
-    const restOfIngredient = ingredientLine
-      .replace(getFirstMatch(ingredientLine, numericRangeWithSpaceRegex), "")
-      .trim();
     return [
-      ingredientLine.match(numericRangeWithSpaceRegex) && quantity,
-      restOfIngredient,
+      quantity,
+      ingredientLine
+        .replace(getFirstMatch(ingredientLine, unicodeFractionRegex), "")
+        .trim(),
     ];
   }
 
   // found a numeric/fraction quantity, for example: "1 1/3"
-  else if (ingredientLine.match(numericAndFractionRegex)) {
+  if (ingredientLine.match(numericAndFractionRegex)) {
+    if (ingredientLine.indexOf("kryddmått") > -1) {
+      console.log("Kryddmått!!!");
+    }
     let quantity = getFirstMatch(
       ingredientLine,
       numericAndFractionRegex
-    ).replace(",", ".");
+    ).replace(/[,]+/g, ".");
 
     const restOfIngredient = ingredientLine
       .replace(getFirstMatch(ingredientLine, numericAndFractionRegex), "")
       .trim();
-    return [
-      ingredientLine.match(numericAndFractionRegex) && quantity,
-      restOfIngredient,
-    ];
+
+    return [quantity, restOfIngredient];
   }
 
   // no parse-able quantity found
@@ -113,64 +118,58 @@ export function multiplyQuantity(
   ingredientLine: string,
   multiplier: number
 ): string {
-  const numericAndFractionRegex = /^(\d+\/\d+)|(\d+\s\d+\/\d+)|(\d+.\d+)|\d+/g;
-  const numericRangeWithSpaceRegex = /^(\d+\-\d+)|^(\d+\s\-\s\d+)|^(\d+\sto\s\d+)/g; // for ex: "1 to 2" or "1 - 2"
-  const unicodeFractionRegex = /\d*[^\u0000-\u007F]+/g;
-  const onlyUnicodeFraction = /[^\u0000-\u007F]+/g;
+  //found a range of quantities
+  if (ingredientLine.match(rangesRegex)) {
+    const quantityRanges = getFirstMatch(ingredientLine, rangesRegex)
+      .trim()
+      .split("-");
+
+    const multipliedRanges = quantityRanges.map((quantity) => {
+      quantity = quantity.trim().replace(",", ".");
+
+      //range has unicodes
+      let value: number;
+      if (ingredientLine.match(unicodeFractionRegex)) {
+        value = parseFloat(convertFromFraction(convertUnicode(quantity)));
+      } else {
+        value = parseFloat(convertFromFraction(quantity));
+      }
+
+      return isNaN(value) ? quantity : (value * multiplier).toString();
+    });
+
+    const restOfIngredient = ingredientLine
+      .replace(getFirstMatch(ingredientLine, rangesRegex), "")
+      .trim();
+
+    return `${multipliedRanges[0]} - ${multipliedRanges[1]} ${restOfIngredient}`;
+  }
 
   // found a unicode quantity inside our regex, for ex: '⅝'
   if (ingredientLine.match(unicodeFractionRegex)) {
-    const numericPart = getFirstMatch(ingredientLine, numericAndFractionRegex);
-    const unicodePart = getFirstMatch(
-      ingredientLine,
-      numericPart ? onlyUnicodeFraction : unicodeFractionRegex
-    );
-
-    // If there's a match for the unicodePart in our dictionary above
-    if (unicodeObj[unicodePart]) {
-      const quantity =
-        parseFloat(
-          convertFromFraction(`${numericPart} ${unicodeObj[unicodePart]}`)
-        ) * multiplier;
-
-      const restOfIngredient = ingredientLine
-        .replace(getFirstMatch(ingredientLine, unicodeFractionRegex), "")
-        .trim();
-      return `${quantity}${restOfIngredient}`;
-    }
-  }
-
-  // found a quantity range, for ex: "2 to 3"
-  if (ingredientLine.match(numericRangeWithSpaceRegex)) {
-    const quantity = getFirstMatch(ingredientLine, numericRangeWithSpaceRegex)
-      .replace("to", "-")
-      .split(" ")
-      .join("");
+    const quantity =
+      parseFloat(convertFromFraction(convertUnicode(ingredientLine))) *
+      multiplier;
 
     const restOfIngredient = ingredientLine
-      .replace(getFirstMatch(ingredientLine, numericRangeWithSpaceRegex), "")
+      .replace(getFirstMatch(ingredientLine, unicodeFractionRegex), "")
       .trim();
-
-    const quantityRange = quantity.split("-");
-    const minQty = parseFloat(quantityRange[0]) * multiplier;
-    const maxQty = parseFloat(quantityRange[1]) * multiplier;
-
-    return `${minQty} - ${maxQty} ${restOfIngredient}`;
+    return `${quantity} ${restOfIngredient}`;
   }
+
   // found a numeric/fraction quantity, for example: "1 1/3"
-  else if (ingredientLine.match(numericAndFractionRegex)) {
-    let parsedQuantity = getFirstMatch(
+  if (ingredientLine.match(numericAndFractionRegex)) {
+    let quantity = getFirstMatch(
       ingredientLine,
       numericAndFractionRegex
-    ).replace(",", ".");
+    ).replace(/[,]+/g, ".");
 
-    const quantity =
-      parseFloat(convertFromFraction(parsedQuantity)) * multiplier;
+    const value = parseFloat(convertFromFraction(quantity)) * multiplier;
 
     const restOfIngredient = ingredientLine
       .replace(getFirstMatch(ingredientLine, numericAndFractionRegex), "")
       .trim();
-    return `${quantity} ${restOfIngredient}`;
+    return `${value} ${restOfIngredient}`;
   }
 
   // no parse-able quantity found
@@ -182,4 +181,18 @@ export function multiplyQuantity(
 function keepThreeDecimals(val: number) {
   const strVal = val.toString();
   return strVal.split(".")[0] + "." + strVal.split(".")[1].substring(0, 3);
+}
+
+function convertUnicode(quantity: string): string {
+  const numericPart = getFirstMatch(quantity, numericAndFractionRegex);
+  const unicodePart = getFirstMatch(
+    quantity,
+    numericPart ? onlyUnicodeFraction : unicodeFractionRegex
+  );
+
+  if (unicodeObj[unicodePart]) {
+    return `${numericPart} ${unicodeObj[unicodePart]}`;
+  }
+
+  return quantity;
 }

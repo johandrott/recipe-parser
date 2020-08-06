@@ -45,9 +45,6 @@ describe("recipe parser", () => {
       it('of "10 - 20 teaspoon water"', () => {
         expect(parse("10 - 20 teaspoon water").quantity).to.equal("10-20");
       });
-      it('of "10 to 20 teaspoon water"', () => {
-        expect(parse("10 to 20 teaspoon water").quantity).to.equal("10-20");
-      });
     });
 
     describe("of unicode fractions", () => {
@@ -266,16 +263,6 @@ describe("recipe parser", () => {
         minQty: "25",
         maxQty: "25",
         extraInfo: "(or buy a roast and chop into small cubes)",
-      });
-    });
-    it('"parses ingredient with range: 1 to 2 chicken breasts"', () => {
-      expect(parse("1 to 2 chicken breasts")).to.deep.equal({
-        unit: null,
-        quantity: "1-2",
-        ingredient: "chicken breasts",
-        minQty: "1",
-        maxQty: "2",
-        extraInfo: null,
       });
     });
     it('"parses ingredient with range: 1 - 2 chicken breasts"', () => {
@@ -921,27 +908,53 @@ describe("scale ingredient", () => {
     );
   });
 
-  it("should multiply quantity range by 2", () => {
-    expect(scale("1 - 2 apple (or other fruit)", 2)).to.equal(
-      "2 - 4 apple (or other fruit)"
+  it("should multiply quantity by 2", () => {
+    expect(scale("1 apple (or other fruit)", 2)).to.equal(
+      "2 apple (or other fruit)"
     );
   });
 
   it("should multiply fraction by 2", () => {
-    expect(scale("1 1/2 apple (or other fruit)", 2)).to.equal(
-      "3 apple (or other fruit)"
+    expect(scale("1 1/2 apples (or other fruit)", 2)).to.equal(
+      "3 apples (or other fruit)"
     );
   });
 
-  it("should multiply unicode by 2", () => {
-    expect(scale("1 ½ apple (or other fruit)", 2)).to.equal(
-      "1 apple (or other fruit)"
+  //Unicodes
+  it("should multiply unicode only by 2", () => {
+    expect(scale("½ apples (or other fruit)", 2)).to.equal(
+      "1 apples (or other fruit)"
+    );
+  });
+
+  it("should multiply unicode with leading digit by 2", () => {
+    expect(scale("1 ½ apples (or other fruit)", 2)).to.equal(
+      "3 apples (or other fruit)"
+    );
+  });
+
+  //Ranges
+  it("should multiply quantity range by 2", () => {
+    expect(scale("1 - 2 apples (or other fruit)", 2)).to.equal(
+      "2 - 4 apples (or other fruit)"
+    );
+  });
+
+  it("should multiply unicode range by 2", () => {
+    expect(scale("1 ½ - 2 ½ apples (or other fruit)", 2)).to.equal(
+      "3 - 5 apples (or other fruit)"
+    );
+  });
+
+  it("should multiply decimal and integer range by 2", () => {
+    expect(scale("1,5-2 apples (or other fruit)", 2)).to.equal(
+      "3 - 4 apples (or other fruit)"
     );
   });
 
   it("should multiply decimal range by 2", () => {
-    expect(scale("1,5 - 2 apple (or other fruit)", 2)).to.equal(
-      "3 - 4 apple (or other fruit)"
+    expect(scale("1,5 - 2,5 apples (or other fruit)", 2)).to.equal(
+      "3 - 5 apples (or other fruit)"
     );
   });
 });
